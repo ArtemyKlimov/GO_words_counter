@@ -13,7 +13,7 @@ import (
     //"time"
 )
 
-func goCounter(url string, id int) (int, error) {
+func goCounter(url string) (int, error) {
     resp, err := http.Get(url)
     if err != nil {
         //fmt.Println("Some problem occured while opening URL: ", url)
@@ -31,21 +31,14 @@ func goCounter(url string, id int) (int, error) {
     return len(matches), nil
 }
 
-
-
-
 func main() {
     runtime.GOMAXPROCS(runtime.NumCPU())
     scanner := bufio.NewScanner(os.Stdin)
-    type task struct {
-        url string
-        id int
-    }
-    tasks := make(chan task)
+    tasks := make(chan string)
     index := 1
     go func() {
         for scanner.Scan() {
-            tasks <- task { url: scanner.Text(), id: index}
+            tasks <- scanner.Text()
             index++
         }
         close(tasks)
@@ -63,9 +56,9 @@ func main() {
         go func() {
             defer wg.Done()
             for t := range tasks {
-                res, err := goCounter(t.url, t.id)
+                res, err := goCounter(t)
                 if err != nil {
-                    log.Printf("error ocured: %v, %v", t.url, err)
+                    log.Printf("error ocured: %v, %v", t, err)
                     continue
                 }
                 results <-res
@@ -77,7 +70,5 @@ func main() {
         total += r
     }
     //time.Sleep(time.Millisecond * 1000)
-    fmt.Println(total)
-
-
+    fmt.Println("Total:",total)
 }
