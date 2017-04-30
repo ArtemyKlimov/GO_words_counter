@@ -10,24 +10,27 @@ import (
     "io/ioutil"
     "log"
     "regexp"
-    //"time"
 )
 
 func goCounter(url string) (int, error) {
     resp, err := http.Get(url)
     if err != nil {
-        //fmt.Println("Some problem occured while opening URL: ", url)
-        return -1, fmt.Errorf("could not get %s: %v", url, err)
+        return 0, fmt.Errorf("could not get %s: %v", url, err)
     }
     defer resp.Body.Close()
+    if resp.StatusCode != http.StatusOK {
+        if resp.StatusCode == http.StatusTooManyRequests {
+            return 0, fmt.Errorf("You are being rate limited:")
+        }
+        return 0, fmt.Errorf("bad response from server: %s", resp.Status)
+    }
     html, err := ioutil.ReadAll(resp.Body)
     if err != nil {
-        //fmt.Println("Some problem occured while reading URL: ", url)
-        return -1, fmt.Errorf("can not read html from %s: %v", url, err)
+        return 0, fmt.Errorf("can not read html from %s: %v", url, err)
     }
     regExp:= regexp.MustCompile("Go")
     matches := regExp.FindAllStringIndex(string(html), -1)
-    fmt.Println("Count for", url, ":", len(matches))
+    fmt.Printf("Count for %s: %d\n", url,len(matches))
     return len(matches), nil
 }
 
@@ -69,6 +72,5 @@ func main() {
     for r := range results {
         total += r
     }
-    //time.Sleep(time.Millisecond * 1000)
     fmt.Println("Total:",total)
 }
