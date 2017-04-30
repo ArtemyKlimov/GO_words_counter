@@ -37,12 +37,15 @@ func goCounter(url string) (int, error) {
 func main() {
     runtime.GOMAXPROCS(runtime.NumCPU())
     scanner := bufio.NewScanner(os.Stdin)
-    tasks := make(chan string)
+    tasks := make(chan string, 10)
     index := 1
     go func() {
         for scanner.Scan() {
             tasks <- scanner.Text()
             index++
+        }
+        if err := scanner.Err(); err != nil {
+            fmt.Fprintln(os.Stderr, "reading standard input:", err)
         }
         close(tasks)
     }()
