@@ -7,13 +7,13 @@ import (
     "os"
     "sync"
     "runtime"
+    "strings"
     "io/ioutil"
     "log"
-    "regexp"
     //_ "net/http/pprof"
 )
 
-func goCounter(url string, regExp *regexp.Regexp) (int, error) {
+func goCounter(url string) (int, error) {
     resp, err := http.Get(url)
     if err != nil {
         return 0, fmt.Errorf("could not get %s: %v", url, err)
@@ -29,18 +29,20 @@ func goCounter(url string, regExp *regexp.Regexp) (int, error) {
     if err != nil {
         return 0, fmt.Errorf("can not read html from %s: %v", url, err)
     }
-    matches := regExp.FindAllStringIndex(string(html), -1)
-    fmt.Printf("Count for %s: %d\n", url,len(matches))
-    return len(matches), nil
+    result := strings.Count(string(html), "Go")
+    fmt.Printf("Count for %s: %d\n", url, result)
+    return result, nil
 }
 
 func main() {
     runtime.GOMAXPROCS(runtime.NumCPU())
     scanner := bufio.NewScanner(os.Stdin)
     tasks := make(chan string, 10)
-    regExp:= regexp.MustCompile("Go")
     go func() {
         for scanner.Scan() {
+            if scanner.Text() == "" {
+                break
+            }
             tasks <- scanner.Text()
         }
         if err := scanner.Err(); err != nil {
@@ -61,7 +63,7 @@ func main() {
         go func() {
             defer wg.Done()
             for t := range tasks {
-                res, err := goCounter(t, regExp)
+                res, err := goCounter(t)
                 if err != nil {
                     log.Printf("error ocured: %v, %v", t, err)
                     continue
